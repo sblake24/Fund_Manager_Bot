@@ -12,7 +12,7 @@ const ALLOWED_CHAT_ID = process.env.ALLOWED_CHAT_ID; // optional security
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const ACCTS = ['F','D','M','C','3','Riv','E','B'];
+const ACCTS = ['F','D','M','C','3','Riv','E','FNTS','HARD'];
 
 async function sendMessage(chatId, text) {
   await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
@@ -175,7 +175,7 @@ async function cmdHelp(chatId) {
     `📋 /balance Name\n` +
     `_Example: /balance John Doe_\n\n` +
     `📈 /stats — Fund overview\n\n` +
-    `Accounts: F, D, M, C, 3, Riv, E, B`
+    `Accounts: F, D, M, C, 3, Riv, E, FNTS, HARD`
   );
 }
 
