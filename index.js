@@ -36,7 +36,7 @@ function calcOwed(inv) {
     base += Number(inv.invested || 0) + Number(inv.capital || 0);
   }
   (inv.extra_funding || []).forEach(ex => { if (ex.by === 'sands') base += Number(ex.amt || 0); });
-  return Math.max(0, base - paid);
+  return base - paid;
 }
 
 function calcAP(inv) {
@@ -121,7 +121,8 @@ async function cmdPayment(chatId, args) {
   if (error) return sendMessage(chatId, '❌ Error recording payment: ' + error.message);
 
   const newOwed = calcOwed({ ...inv, payments });
-  sendMessage(chatId, `✅ Payment recorded for *${inv.fname} ${inv.lname}*\n💸 ${fmt(amount)} → ${paidTo}\n🔴 Still owed: ${fmt(newOwed)}`);
+  const owedLabel = newOwed < 0 ? `🟢 We owe them: ${fmt(Math.abs(newOwed))}` : `🔴 Still owed: ${fmt(newOwed)}`;
+  sendMessage(chatId, `✅ Payment recorded for *${inv.fname} ${inv.lname}*\n💸 ${fmt(amount)} → ${paidTo}\n${owedLabel}`);
 }
 
 // /balance John Doe
@@ -135,13 +136,15 @@ async function cmdBalance(chatId, args) {
   const owed = calcOwed(inv);
   const paid = (inv.payments || []).reduce((a, p) => a + Number(p.amount || 0), 0);
 
+  const owedLabel = owed < 0 ? `🟢 We owe them: ${fmt(Math.abs(owed))}` : `🔴 Owed: ${fmt(owed)}`;
+
   sendMessage(chatId,
     `📋 *${inv.fname} ${inv.lname}*\n` +
     `📍 ${inv.state || '—'} | ${inv.share}% our way | ${inv.funded || '—'}\n` +
     `📊 Acct Profit: ${fmt(ap)}\n` +
     `💰 Capital: ${fmt(inv.capital)}\n` +
     `💸 Paid: ${fmt(paid)}\n` +
-    `🔴 Owed: ${fmt(owed)}`
+    owedLabel
   );
 }
 
