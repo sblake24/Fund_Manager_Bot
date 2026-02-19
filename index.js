@@ -135,14 +135,15 @@ async function cmdBalance(chatId, args) {
   const ap = calcAP(inv);
   const owed = calcOwed(inv);
   const paid = (inv.payments || []).reduce((a, p) => a + Number(p.amount || 0), 0);
-  const owedLabel = owed < 0 ? `🟢 We owe them: ${fmt(Math.abs(owed))}` : `🔴 Owed: ${fmt(owed)}`;
+  const owedLabel = owed < 0 ? `🟢 We owe them: ${fmt(Math.abs(owed))}` : `🔴 They owe us: ${fmt(owed)}`;
+  const apLabel = ap < 0 ? `📉 Acct Profit: ${fmt(ap)} (loss)` : `📈 Acct Profit: ${fmt(ap)}`;
 
   sendMessage(chatId,
     `📋 *${inv.fname} ${inv.lname}*\n` +
-    `funded: "${inv.funded}" | share: ${inv.share}%\n` +
-    `capital: ${inv.capital} | invested: ${inv.invested}\n` +
-    `acct profit: ${ap} | paid: ${paid}\n` +
-    `payments raw: ${JSON.stringify(inv.payments)}\n` +
+    `📍 ${inv.state || '—'} | ${inv.share}% our way | ${inv.funded || '—'}\n` +
+    `${apLabel}\n` +
+    `💰 Capital: ${fmt(inv.capital)}\n` +
+    `💸 Paid: ${fmt(paid)}\n` +
     owedLabel
   );
 }
