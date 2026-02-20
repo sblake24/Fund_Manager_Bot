@@ -110,37 +110,43 @@ async function cmdProfit(chatId, args) {
   sendMessage(chatId, `✅ *${inv.fname} ${inv.lname}* — Account *${acct}* set to ${fmt(amount)}\n📊 Total acct profit: ${fmt(newAP)}`);
 }
 
-// /payment John Doe 3000 Sands in/out
-async function cmdPayment(chatId, args) {
+// /paymentfrom John Doe 3000 Sands  (they paid us)
+async function cmdPaymentFrom(chatId, args) {
   if (args.length < 3) {
-    return sendMessage(chatId, '❌ Usage: `/payment Name Amount PaidTo [in/out]`\n_in = they paid you (default)_\n_out = you paid them_\nExample: `/payment John Doe 3000 Sands out`');
+    return sendMessage(chatId, '❌ Usage: `/paymentfrom Name Amount PaidTo`\nExample: `/paymentfrom John Doe 3000 Sands`');
   }
-
-  // Check if last arg is in/out
-  let dir = 'in';
-  let cleanArgs = [...args];
-  if (['in','out'].includes(args[args.length-1].toLowerCase())) {
-    dir = cleanArgs.pop().toLowerCase();
-  }
-
-  const paidTo = cleanArgs[cleanArgs.length - 1];
-  const amount = parseFloat(cleanArgs[cleanArgs.length - 2]) || 0;
-  const name = cleanArgs.slice(0, cleanArgs.length - 2).join(' ');
-
+  const paidTo = args[args.length - 1];
+  const amount = parseFloat(args[args.length - 2]) || 0;
+  const name = args.slice(0, args.length - 2).join(' ');
   const inv = await findInvestor(name);
   if (!inv) return sendMessage(chatId, `❌ Investor "${name}" not found.`);
-
   const payments = inv.payments || [];
   if (payments.length >= 5) return sendMessage(chatId, '❌ Max 5 payments per investor already reached.');
-  payments.push({ amount, to: paidTo, dir });
-
+  payments.push({ amount, to: paidTo, dir: 'in' });
   const { error } = await sb.from('investors').update({ payments }).eq('id', inv.id);
   if (error) return sendMessage(chatId, '❌ Error recording payment: ' + error.message);
-
   const newOwed = calcOwed({ ...inv, payments });
   const owedLabel = newOwed < 0 ? `🟢 We owe them: ${fmt(Math.abs(newOwed))}` : `🔴 They owe us: ${fmt(newOwed)}`;
-  const dirLabel = dir === 'out' ? '📤 We paid them' : '📥 They paid us';
-  sendMessage(chatId, `✅ Payment recorded for *${inv.fname} ${inv.lname}*\n${dirLabel}: ${fmt(amount)} → ${paidTo}\n${owedLabel}`);
+  sendMessage(chatId, `✅ Payment recorded for *${inv.fname} ${inv.lname}*\n📥 They paid us: ${fmt(amount)} → ${paidTo}\n${owedLabel}`);
+}
+
+// /paymentto John Doe 3000  (we paid them, Sands implied)
+async function cmdPaymentTo(chatId, args) {
+  if (args.length < 2) {
+    return sendMessage(chatId, '❌ Usage: `/paymentto Name Amount`\nExample: `/paymentto John Doe 3000`');
+  }
+  const amount = parseFloat(args[args.length - 1]) || 0;
+  const name = args.slice(0, args.length - 1).join(' ');
+  const inv = await findInvestor(name);
+  if (!inv) return sendMessage(chatId, `❌ Investor "${name}" not found.`);
+  const payments = inv.payments || [];
+  if (payments.length >= 5) return sendMessage(chatId, '❌ Max 5 payments per investor already reached.');
+  payments.push({ amount, to: 'Sands', dir: 'out' });
+  const { error } = await sb.from('investors').update({ payments }).eq('id', inv.id);
+  if (error) return sendMessage(chatId, '❌ Error recording payment: ' + error.message);
+  const newOwed = calcOwed({ ...inv, payments });
+  const owedLabel = newOwed < 0 ? `🟢 We owe them: ${fmt(Math.abs(newOwed))}` : `🔴 They owe us: ${fmt(newOwed)}`;
+  sendMessage(chatId, `✅ Payment recorded for *${inv.fname} ${inv.lname}*\n📤 We paid them: ${fmt(amount)}\n${owedLabel}`);
 }
 
 // /balance John Doe
@@ -272,9 +278,11 @@ async function cmdHelp(chatId) {
     `_Example: /add John Doe NY 15 sands 10000_\n\n` +
     `📊 /profit Name Account Amount\n` +
     `_Example: /profit John Doe F 5000_\n\n` +
-    `💸 /payment Name Amount PaidTo [in/out]\n` +
-    `_in = they paid you (default), out = you paid them_\n` +
-    `_Example: /payment John Doe 3000 Sands out_\n\n` +
+    `📥 /paymentfrom Name Amount PaidTo\n` +
+    `_Example: /paymentfrom John Doe 3000 Sands_\n\n` +
+    `📤 /paymentto Name Amount\n` +
+    `_We paid them (Sands implied)_\n` +
+    `_Example: /paymentto John Doe 3000_\n\n` +
     `📋 /balance Name\n` +
     `_Example: /balance John Doe_\n\n` +
     `🗑️ /delete Name\n` +
@@ -311,7 +319,8 @@ app.post('/webhook', async (req, res) => {
 
   if (cmd === '/add')     await cmdAdd(chatId, args);
   else if (cmd === '/profit')  await cmdProfit(chatId, args);
-  else if (cmd === '/payment') await cmdPayment(chatId, args);
+  else if (cmd === '/paymentfrom') await cmdPaymentFrom(chatId, args);
+  else if (cmd === '/paymentto')   await cmdPaymentTo(chatId, args);
   else if (cmd === '/balance') await cmdBalance(chatId, args);
   else if (cmd === '/delete')  await cmdDelete(chatId, args);
   else if (cmd === '/profitowed') await cmdProfitOwed(chatId);
