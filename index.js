@@ -41,7 +41,7 @@ function calcOwed(inv) {
   const paid = (inv.payments || []).reduce((a, p) => a + (p.dir === 'out' ? -Number(p.amount || 0) : Number(p.amount || 0)), 0);
   let base = t * (inv.share / 100);
   if ((inv.funded || '').toLowerCase() === 'sands') {
-    base += Number(inv.invested || 0) + Number(inv.capital || 0);
+    base += Number(inv.capital || 0);
   }
   (inv.extra_funding || []).forEach(ex => { if (ex.by === 'sands') base += Number(ex.amt || 0); });
   return base - paid;
