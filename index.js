@@ -243,7 +243,8 @@ async function cmdHelp(chatId) {
     `❓ /unused Name — Show unset accounts for a specific investor\n` +
     `_Example: /unused John Doe_\n\n` +
     `📈 /stats — Fund overview\n\n` +
-    `Accounts: F, D, M, C, 3, Riv, E, FNTS, HARD`
+    `Accounts: F, D, M, C, 3, Riv, E, FNTS, HARD\n` +
+    `_NY: excludes 3 | NJ: includes B_`
   );
 }
 
