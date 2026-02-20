@@ -224,6 +224,16 @@ async function cmdUnused(chatId, args) {
   sendMessage(chatId, `📋 *${inv.fname} ${inv.lname}* — unused accounts:\n\n${missing.map(k => `• ${k}`).join('\n')}`);
 }
 
+// /owed
+async function cmdOwed(chatId) {
+  const { data: investors } = await sb.from('investors').select('*');
+  if (!investors) return sendMessage(chatId, '❌ Could not load investors.');
+  const list = investors.filter(inv => calcOwed(inv) > 0).sort((a, b) => calcOwed(b) - calcOwed(a));
+  if (!list.length) return sendMessage(chatId, '🎉 No one owes you money right now!');
+  const lines = list.map(inv => `• *${inv.fname} ${inv.lname}* — ${fmt(calcOwed(inv))}`).join('\n');
+  const total = list.reduce((a, inv) => a + calcOwed(inv), 0);
+  sendMessage(chatId, `🔴 *Investors That Owe Us* (${list.length})\n\n${lines}\n\n*Total: ${fmt(total)}*`);
+}
 async function cmdHelp(chatId) {
   sendMessage(chatId,
     `*Fund Manager Bot Commands*\n\n` +
@@ -238,6 +248,7 @@ async function cmdHelp(chatId) {
     `_Example: /balance John Doe_\n\n` +
     `🗑️ /delete Name\n` +
     `_Example: /delete John Doe_\n\n` +
+    `🔴 /owed — List all investors that owe you money\n\n` +
     `🔍 /zero Account — List investors where account has no value set\n` +
     `_Example: /zero F_\n\n` +
     `❓ /unused Name — Show unset accounts for a specific investor\n` +
@@ -271,7 +282,7 @@ app.post('/webhook', async (req, res) => {
   else if (cmd === '/payment') await cmdPayment(chatId, args);
   else if (cmd === '/balance') await cmdBalance(chatId, args);
   else if (cmd === '/delete')  await cmdDelete(chatId, args);
-  else if (cmd === '/unused')   await cmdUnused(chatId, args);
+  else if (cmd === '/owed')    await cmdOwed(chatId);
   else if (cmd === '/zero')    await cmdZero(chatId, args);
   else if (cmd === '/stats')   await cmdStats(chatId);
   else if (cmd === '/help')    await cmdHelp(chatId);
