@@ -234,9 +234,40 @@ async function cmdOwed(chatId) {
   const total = list.reduce((a, inv) => a + calcOwed(inv), 0);
   sendMessage(chatId, `🔴 *Investors That Owe Us* (${list.length})\n\n${lines}\n\n*Total: ${fmt(total)}*`);
 }
+// /profitowed
+async function cmdProfitOwed(chatId) {
+  const { data: investors } = await sb.from('investors').select('*');
+  if (!investors) return sendMessage(chatId, '❌ Could not load investors.');
+  const list = investors.filter(inv => {
+    const ap = calcAP(inv);
+    const profitShare = ap * ((inv.share || 0) / 100);
+    const paid = (inv.payments || []).reduce((a, p) => a + (p.dir === 'out' ? -Number(p.amount || 0) : Number(p.amount || 0)), 0);
+    return (profitShare - paid) > 0;
+  }).sort((a, b) => {
+    const calc = inv => {
+      const ap = calcAP(inv);
+      const paid = (inv.payments || []).reduce((a, p) => a + (p.dir === 'out' ? -Number(p.amount || 0) : Number(p.amount || 0)), 0);
+      return ap * ((inv.share || 0) / 100) - paid;
+    };
+    return calc(b) - calc(a);
+  });
+  if (!list.length) return sendMessage(chatId, '🎉 No profit-based balances outstanding!');
+  const lines = list.map(inv => {
+    const ap = calcAP(inv);
+    const paid = (inv.payments || []).reduce((a, p) => a + (p.dir === 'out' ? -Number(p.amount || 0) : Number(p.amount || 0)), 0);
+    const bal = ap * ((inv.share || 0) / 100) - paid;
+    return `• *${inv.fname} ${inv.lname}* — ${fmt(bal)}`;
+  }).join('\n');
+  const total = list.reduce((a, inv) => {
+    const ap = calcAP(inv);
+    const paid = (inv.payments || []).reduce((s, p) => s + (p.dir === 'out' ? -Number(p.amount || 0) : Number(p.amount || 0)), 0);
+    return a + (ap * ((inv.share || 0) / 100) - paid);
+  }, 0);
+  sendMessage(chatId, `💹 *Profit-Based Balances* (${list.length})\n_Excludes Sands capital_\n\n${lines}\n\n*Total: ${fmt(total)}*`);
+}
+
 async function cmdHelp(chatId) {
   sendMessage(chatId,
-    `*Fund Manager Bot Commands*\n\n` +
     `➕ /add FirstName LastName State% Funded Capital\n` +
     `_Example: /add John Doe NY 15 sands 10000_\n\n` +
     `📊 /profit Name Account Amount\n` +
@@ -249,6 +280,7 @@ async function cmdHelp(chatId) {
     `🗑️ /delete Name\n` +
     `_Example: /delete John Doe_\n\n` +
     `🔴 /owed — List all investors that owe you money\n\n` +
+    `💹 /profitowed — Owed from profits only (excludes Sands capital)\n\n` +
     `🔍 /zero Account — List investors where account has no value set\n` +
     `_Example: /zero F_\n\n` +
     `❓ /unused Name — Show unset accounts for a specific investor\n` +
@@ -282,7 +314,7 @@ app.post('/webhook', async (req, res) => {
   else if (cmd === '/payment') await cmdPayment(chatId, args);
   else if (cmd === '/balance') await cmdBalance(chatId, args);
   else if (cmd === '/delete')  await cmdDelete(chatId, args);
-  else if (cmd === '/owed')    await cmdOwed(chatId);
+  else if (cmd === '/profitowed') await cmdProfitOwed(chatId);
   else if (cmd === '/zero')    await cmdZero(chatId, args);
   else if (cmd === '/stats')   await cmdStats(chatId);
   else if (cmd === '/help')    await cmdHelp(chatId);
