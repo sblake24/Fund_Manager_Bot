@@ -214,6 +214,8 @@ async function cmdUnused(chatId, args) {
   if (!missing.length) return sendMessage(chatId, `✅ *${inv.fname} ${inv.lname}* has all accounts set!`);
   sendMessage(chatId, `📋 *${inv.fname} ${inv.lname}* — unused accounts:\n\n${missing.map(k => `• ${k}`).join('\n')}`);
 }
+
+async function cmdHelp(chatId) {
   sendMessage(chatId,
     `*Fund Manager Bot Commands*\n\n` +
     `➕ /add FirstName LastName State% Funded Capital\n` +
