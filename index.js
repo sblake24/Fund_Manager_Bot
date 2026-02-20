@@ -203,7 +203,17 @@ async function cmdZero(chatId, args) {
   sendMessage(chatId, `📊 *${acct} not set* — ${list.length} investor${list.length!==1?'s':''}\n\n${lines}`);
 }
 
-async function cmdHelp(chatId) {
+// /unused John Doe
+async function cmdUnused(chatId, args) {
+  if (!args.length) return sendMessage(chatId, '❌ Usage: `/unused Name`\nExample: `/unused John Doe`');
+  const name = args.join(' ');
+  const inv = await findInvestor(name);
+  if (!inv) return sendMessage(chatId, `❌ Investor "${name}" not found.`);
+  const profits = inv.acct_profits || {};
+  const missing = ACCTS.filter(k => !(k in profits) || profits[k] === null || profits[k] === undefined);
+  if (!missing.length) return sendMessage(chatId, `✅ *${inv.fname} ${inv.lname}* has all accounts set!`);
+  sendMessage(chatId, `📋 *${inv.fname} ${inv.lname}* — unused accounts:\n\n${missing.map(k => `• ${k}`).join('\n')}`);
+}
   sendMessage(chatId,
     `*Fund Manager Bot Commands*\n\n` +
     `➕ /add FirstName LastName State% Funded Capital\n` +
@@ -219,6 +229,8 @@ async function cmdHelp(chatId) {
     `_Example: /delete John Doe_\n\n` +
     `🔍 /zero Account — List investors where account has no value set\n` +
     `_Example: /zero F_\n\n` +
+    `❓ /unused Name — Show unset accounts for a specific investor\n` +
+    `_Example: /unused John Doe_\n\n` +
     `📈 /stats — Fund overview\n\n` +
     `Accounts: F, D, M, C, 3, Riv, E, FNTS, HARD`
   );
@@ -247,6 +259,7 @@ app.post('/webhook', async (req, res) => {
   else if (cmd === '/payment') await cmdPayment(chatId, args);
   else if (cmd === '/balance') await cmdBalance(chatId, args);
   else if (cmd === '/delete')  await cmdDelete(chatId, args);
+  else if (cmd === '/unused')   await cmdUnused(chatId, args);
   else if (cmd === '/zero')    await cmdZero(chatId, args);
   else if (cmd === '/stats')   await cmdStats(chatId);
   else if (cmd === '/help')    await cmdHelp(chatId);
