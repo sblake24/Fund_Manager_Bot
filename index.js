@@ -184,6 +184,19 @@ async function cmdDelete(chatId, args) {
   if (error) return sendMessage(chatId, '❌ Error deleting investor: ' + error.message);
   sendMessage(chatId, `🗑️ *${inv.fname} ${inv.lname}* has been deleted.`);
 }
+// /zero F
+async function cmdZero(chatId, args) {
+  if (!args.length) return sendMessage(chatId, '❌ Usage: `/zero Account`\nExample: `/zero F`\nAccounts: ' + ACCTS.join(', '));
+  const acct = args[0].toUpperCase();
+  if (!ACCTS.includes(acct)) return sendMessage(chatId, `❌ Unknown account "${acct}". Valid: ${ACCTS.join(', ')}`);
+  const { data: investors } = await sb.from('investors').select('*');
+  if (!investors) return sendMessage(chatId, '❌ Could not load investors.');
+  const list = investors.filter(inv => Number((inv.acct_profits || {})[acct] || 0) === 0);
+  if (!list.length) return sendMessage(chatId, `✅ No investors with ${acct} = $0!`);
+  const lines = list.map(inv => `• ${inv.fname} ${inv.lname} (${inv.state || '—'})`).join('\n');
+  sendMessage(chatId, `📊 *${acct} = $0* — ${list.length} investor${list.length!==1?'s':''}\n\n${lines}`);
+}
+
 async function cmdHelp(chatId) {
   sendMessage(chatId,
     `*Fund Manager Bot Commands*\n\n` +
@@ -198,6 +211,9 @@ async function cmdHelp(chatId) {
     `_Example: /balance John Doe_\n\n` +
     `🗑️ /delete Name\n` +
     `_Example: /delete John Doe_\n\n` +
+    `🔍 /zero Account\n` +
+    `_Example: /zero F_\n\n` +
+    `📈 /stats — Fund overview\n\n` +
     `Accounts: F, D, M, C, 3, Riv, E, FNTS, HARD`
   );
 }
@@ -225,6 +241,7 @@ app.post('/webhook', async (req, res) => {
   else if (cmd === '/payment') await cmdPayment(chatId, args);
   else if (cmd === '/balance') await cmdBalance(chatId, args);
   else if (cmd === '/delete')  await cmdDelete(chatId, args);
+  else if (cmd === '/zero')    await cmdZero(chatId, args);
   else if (cmd === '/stats')   await cmdStats(chatId);
   else if (cmd === '/help')    await cmdHelp(chatId);
   else sendMessage(chatId, 'Unknown command. Type /help for all commands.');
