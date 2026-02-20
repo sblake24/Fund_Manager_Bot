@@ -28,7 +28,10 @@ function fmt(n) {
 
 function getAccts(inv) {
   const state = (inv.state || '').toUpperCase();
-  return state === 'NY' ? ACCTS.filter(k => k !== '3') : ACCTS;
+  let accts = ACCTS.slice();
+  if (state === 'NJ' || state === 'NEW JERSEY') accts.push('B');
+  if (state === 'NY' || state === 'NEW YORK') accts = accts.filter(k => k !== '3');
+  return accts;
 }
 function calcOwed(inv) {
   const accts = getAccts(inv);
