@@ -191,10 +191,13 @@ async function cmdZero(chatId, args) {
   if (!ACCTS.includes(acct)) return sendMessage(chatId, `❌ Unknown account "${acct}". Valid: ${ACCTS.join(', ')}`);
   const { data: investors } = await sb.from('investors').select('*');
   if (!investors) return sendMessage(chatId, '❌ Could not load investors.');
-  const list = investors.filter(inv => Number((inv.acct_profits || {})[acct] || 0) === 0);
-  if (!list.length) return sendMessage(chatId, `✅ No investors with ${acct} = $0!`);
+  const list = investors.filter(inv => {
+    const profits = inv.acct_profits || {};
+    return !(acct in profits) || profits[acct] === null || profits[acct] === undefined;
+  });
+  if (!list.length) return sendMessage(chatId, `✅ All investors have a value set for ${acct}!`);
   const lines = list.map(inv => `• ${inv.fname} ${inv.lname} (${inv.state || '—'})`).join('\n');
-  sendMessage(chatId, `📊 *${acct} = $0* — ${list.length} investor${list.length!==1?'s':''}\n\n${lines}`);
+  sendMessage(chatId, `📊 *${acct} not set* — ${list.length} investor${list.length!==1?'s':''}\n\n${lines}`);
 }
 
 async function cmdHelp(chatId) {
@@ -211,7 +214,7 @@ async function cmdHelp(chatId) {
     `_Example: /balance John Doe_\n\n` +
     `🗑️ /delete Name\n` +
     `_Example: /delete John Doe_\n\n` +
-    `🔍 /zero Account\n` +
+    `🔍 /zero Account — List investors where account has no value set\n` +
     `_Example: /zero F_\n\n` +
     `📈 /stats — Fund overview\n\n` +
     `Accounts: F, D, M, C, 3, Riv, E, FNTS, HARD`
