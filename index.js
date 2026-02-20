@@ -26,10 +26,15 @@ function fmt(n) {
   return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
+function getAccts(inv) {
+  const state = (inv.state || '').toUpperCase();
+  return state === 'NY' ? ACCTS.filter(k => k !== '3') : ACCTS;
+}
 function calcOwed(inv) {
+  const accts = getAccts(inv);
   const ap = inv.acct_profits || {};
   let t = 0;
-  for (const k of ACCTS) t += Number(ap[k] || 0);
+  for (const k of accts) t += Number(ap[k] || 0);
   const paid = (inv.payments || []).reduce((a, p) => a + (p.dir === 'out' ? -Number(p.amount || 0) : Number(p.amount || 0)), 0);
   let base = t * (inv.share / 100);
   if ((inv.funded || '').toLowerCase() === 'sands') {
@@ -40,8 +45,9 @@ function calcOwed(inv) {
 }
 
 function calcAP(inv) {
+  const accts = getAccts(inv);
   const ap = inv.acct_profits || {};
-  return ACCTS.reduce((a, k) => a + Number(ap[k] || 0), 0);
+  return accts.reduce((a, k) => a + Number(ap[k] || 0), 0);
 }
 
 async function findInvestor(name) {
@@ -210,7 +216,7 @@ async function cmdUnused(chatId, args) {
   const inv = await findInvestor(name);
   if (!inv) return sendMessage(chatId, `❌ Investor "${name}" not found.`);
   const profits = inv.acct_profits || {};
-  const missing = ACCTS.filter(k => !(k in profits) || profits[k] === null || profits[k] === undefined);
+  const missing = getAccts(inv).filter(k => !(k in profits) || profits[k] === null || profits[k] === undefined);
   if (!missing.length) return sendMessage(chatId, `✅ *${inv.fname} ${inv.lname}* has all accounts set!`);
   sendMessage(chatId, `📋 *${inv.fname} ${inv.lname}* — unused accounts:\n\n${missing.map(k => `• ${k}`).join('\n')}`);
 }
