@@ -324,6 +324,7 @@ app.post('/webhook', async (req, res) => {
   else if (cmd === '/balance') await cmdBalance(chatId, args);
   else if (cmd === '/delete')  await cmdDelete(chatId, args);
   else if (cmd === '/owed')       await cmdOwed(chatId);
+  else if (cmd === '/unused')    await cmdUnused(chatId, args);
   else if (cmd === '/profitowed') await cmdProfitOwed(chatId);
   else if (cmd === '/zero')    await cmdZero(chatId, args);
   else if (cmd === '/stats')   await cmdStats(chatId);
