@@ -90,11 +90,12 @@ async function cmdProfit(chatId, args) {
     return sendMessage(chatId, '❌ Usage: `/profit Name Account Amount`\nExample: `/profit John Doe F 5000`\nAccounts: F, D, M, C, 3, Riv, E, B');
   }
   const amount = parseFloat(args[args.length - 1]) || 0;
-  const acct = args[args.length - 2].toUpperCase();
+  const acctInput = args[args.length - 2];
+  const acct = ACCTS.find(a => a.toLowerCase() === acctInput.toLowerCase());
   const name = args.slice(0, args.length - 2).join(' ');
 
-  if (!ACCTS.includes(acct)) {
-    return sendMessage(chatId, `❌ Unknown account "${acct}". Valid: ${ACCTS.join(', ')}`);
+  if (!acct) {
+    return sendMessage(chatId, `❌ Unknown account "${acctInput}". Valid: ${ACCTS.join(', ')}`);
   }
 
   const inv = await findInvestor(name);
@@ -205,8 +206,9 @@ async function cmdDelete(chatId, args) {
 // /zero F
 async function cmdZero(chatId, args) {
   if (!args.length) return sendMessage(chatId, '❌ Usage: `/zero Account`\nExample: `/zero F`\nAccounts: ' + ACCTS.join(', '));
-  const acct = args[0].toUpperCase();
-  if (!ACCTS.includes(acct)) return sendMessage(chatId, `❌ Unknown account "${acct}". Valid: ${ACCTS.join(', ')}`);
+  const acctInput = args[0];
+  const acct = ACCTS.find(a => a.toLowerCase() === acctInput.toLowerCase());
+  if (!acct) return sendMessage(chatId, `❌ Unknown account "${acctInput}". Valid: ${ACCTS.join(', ')}`);
   const { data: investors } = await sb.from('investors').select('*');
   if (!investors) return sendMessage(chatId, '❌ Could not load investors.');
   const list = investors.filter(inv => {
