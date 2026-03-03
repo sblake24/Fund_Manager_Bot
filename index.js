@@ -242,6 +242,16 @@ async function cmdOwed(chatId) {
   const total = list.reduce((a, inv) => a + calcOwed(inv), 0);
   sendMessage(chatId, `🔴 *Investors That Owe Us* (${list.length})\n\n${lines}\n\n*Total: ${fmt(total)}*`);
 }
+// /weowe
+async function cmdWeOwe(chatId) {
+  const { data: investors } = await sb.from('investors').select('*');
+  if (!investors) return sendMessage(chatId, '❌ Could not load investors.');
+  const list = investors.filter(inv => calcOwed(inv) < 0).sort((a, b) => calcOwed(a) - calcOwed(b));
+  if (!list.length) return sendMessage(chatId, '🎉 We don\'t owe anyone right now!');
+  const lines = list.map(inv => `• *${inv.fname} ${inv.lname}* — ${fmt(Math.abs(calcOwed(inv)))}`).join('\n');
+  const total = list.reduce((a, inv) => a + Math.abs(calcOwed(inv)), 0);
+  sendMessage(chatId, `🟢 *We Owe Them* (${list.length})\n\n${lines}\n\n*Total: ${fmt(total)}*`);
+}
 // /profitowed
 async function cmdProfitOwed(chatId) {
   const { data: investors } = await sb.from('investors').select('*');
@@ -290,6 +300,7 @@ async function cmdHelp(chatId) {
     `🗑️ /delete Name\n` +
     `_Example: /delete John Doe_\n\n` +
     `🔴 /owed — List all investors that owe you money\n\n` +
+    `🟢 /weowe — List all investors we owe money to\n\n` +
     `💹 /profitowed — Owed from profits only (excludes Sands capital)\n\n` +
     `🔍 /zero Account — List investors where account has no value set\n` +
     `_Example: /zero F_\n\n` +
@@ -326,6 +337,7 @@ app.post('/webhook', async (req, res) => {
   else if (cmd === '/balance') await cmdBalance(chatId, args);
   else if (cmd === '/delete')  await cmdDelete(chatId, args);
   else if (cmd === '/owed')       await cmdOwed(chatId);
+  else if (cmd === '/weowe')     await cmdWeOwe(chatId);
   else if (cmd === '/unused')    await cmdUnused(chatId, args);
   else if (cmd === '/profitowed') await cmdProfitOwed(chatId);
   else if (cmd === '/zero')    await cmdZero(chatId, args);
