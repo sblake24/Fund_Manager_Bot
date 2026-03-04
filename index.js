@@ -30,7 +30,6 @@ function getAccts(inv) {
   const state = (inv.state || '').toUpperCase();
   let accts = ACCTS.slice();
   if (state === 'NJ' || state === 'NEW JERSEY') accts.push('B');
-  if (state === 'NY' || state === 'NEW YORK') accts = accts.filter(k => k !== '3');
   return accts;
 }
 function calcOwed(inv) {
