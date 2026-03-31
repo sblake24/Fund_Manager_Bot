@@ -295,7 +295,11 @@ async function cmdAvg(chatId, args) {
   const withAcct = investors.filter(inv => {
     const accts = getAccts(inv);
     const ap = inv.acct_profits || {};
-    return accts.includes(acct) && acct in ap && Number(ap[acct] || 0) !== 0;
+    const val = Number(ap[acct] || 0);
+    if (!accts.includes(acct) || !(acct in ap)) return false;
+    if (val === 0) return false;
+    if (acct === '3' && val < 1000) return false;
+    return true;
   });
   if (!withAcct.length) return sendMessage(chatId, `❌ No investors have a value set for *${acct}*.`);
   const total = withAcct.reduce((a, inv) => a + Number(inv.acct_profits[acct] || 0), 0);
