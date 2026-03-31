@@ -283,6 +283,27 @@ async function cmdProfitOwed(chatId) {
   sendMessage(chatId, `💹 *Profit-Based Balances* (${list.length})\n_Excludes Sands capital_\n\n${lines}\n\n*Total: ${fmt(total)}*`);
 }
 
+// /avg 3
+async function cmdAvg(chatId, args) {
+  if (!args.length) return sendMessage(chatId, '❌ Usage: `/avg Account`\nExample: `/avg 3`\nAccounts: ' + ACCTS.join(', ') + ', B');
+  const acctInput = args[0];
+  const allAccts = ACCTS.concat(['B']);
+  const acct = allAccts.find(a => a.toLowerCase() === acctInput.toLowerCase());
+  if (!acct) return sendMessage(chatId, `❌ Unknown account "${acctInput}". Valid: ${ACCTS.join(', ')}, B`);
+  const { data: investors } = await sb.from('investors').select('*');
+  if (!investors) return sendMessage(chatId, '❌ Could not load investors.');
+  const withAcct = investors.filter(inv => {
+    const accts = getAccts(inv);
+    const ap = inv.acct_profits || {};
+    return accts.includes(acct) && acct in ap && Number(ap[acct] || 0) >= 1000;
+  });
+  if (!withAcct.length) return sendMessage(chatId, `❌ No investors have a value set for *${acct}*.`);
+  const total = withAcct.reduce((a, inv) => a + Number(inv.acct_profits[acct] || 0), 0);
+  const avg = total / withAcct.length;
+  const lines = withAcct.map(inv => `• ${inv.fname} ${inv.lname} — ${fmt(inv.acct_profits[acct])}`).join('\n');
+  sendMessage(chatId, `📊 *Account ${acct} — Average*\n\n${lines}\n\n*Total: ${fmt(total)}*\n*Accounts: ${withAcct.length}*\n*Average: ${fmt(avg)}*`);
+}
+
 async function cmdHelp(chatId) {
   sendMessage(chatId,
     `➕ /add FirstName LastName State% Funded Capital\n` +
@@ -306,6 +327,8 @@ async function cmdHelp(chatId) {
     `❓ /unused Name — Show unset accounts for a specific investor\n` +
     `_Example: /unused John Doe_\n\n` +
     `📈 /stats — Fund overview\n\n` +
+    `📉 /avg Account — Average profit per account type\n` +
+    `_Example: /avg 3_\n\n` +
     `Accounts: F, D, M, C, 3, Riv, E, FNTS, HARD\n` +
     `_NY: excludes 3 | NJ: includes B_`
   );
@@ -340,6 +363,7 @@ app.post('/webhook', async (req, res) => {
   else if (cmd === '/unused')    await cmdUnused(chatId, args);
   else if (cmd === '/profitowed') await cmdProfitOwed(chatId);
   else if (cmd === '/zero')    await cmdZero(chatId, args);
+  else if (cmd === '/avg')      await cmdAvg(chatId, args);
   else if (cmd === '/stats')   await cmdStats(chatId);
   else if (cmd === '/help')    await cmdHelp(chatId);
   else sendMessage(chatId, 'Unknown command. Type /help for all commands.');
