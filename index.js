@@ -184,11 +184,30 @@ async function cmdStats(chatId) {
   const totalAP = investors.reduce((a, i) => a + calcAP(i), 0);
   const owingCount = investors.filter(i => calcOwed(i) > 0).length;
 
+  const allAccts = ACCTS.concat(['B']);
+  const acctLines = allAccts.map(acct => {
+    const withAcct = investors.filter(inv => {
+      const accts = getAccts(inv);
+      const ap = inv.acct_profits || {};
+      const val = Number(ap[acct] || 0);
+      if (!accts.includes(acct) || !(acct in ap)) return false;
+      if (val === 0) return false;
+      if (acct === '3' && val < 1000) return false;
+      return true;
+    });
+    if (!withAcct.length) return null;
+    const total = withAcct.reduce((a, inv) => a + Number(inv.acct_profits[acct] || 0), 0);
+    const avg = total / withAcct.length;
+    return `*${acct}:* ${fmt(total)} | ${withAcct.length} accts | avg ${fmt(avg)}`;
+  }).filter(Boolean).join('\n');
+
   sendMessage(chatId,
     `📊 *Fund Stats*\n` +
     `👥 Investors: ${investors.length}\n` +
     `📈 Total Acct Profits: ${fmt(totalAP)}\n` +
-    `🔴 Total Owed: ${fmt(totalOwed)} (${owingCount} investors)\n`
+    `🔴 Total Owed: ${fmt(totalOwed)} (${owingCount} investors)\n\n` +
+    `📋 *By Account*\n` +
+    acctLines
   );
 }
 
