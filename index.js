@@ -295,13 +295,12 @@ async function cmdAvg(chatId, args) {
   const withAcct = investors.filter(inv => {
     const accts = getAccts(inv);
     const ap = inv.acct_profits || {};
-    return accts.includes(acct) && acct in ap && Number(ap[acct] || 0) >= 1000;
+    return accts.includes(acct) && acct in ap && Number(ap[acct] || 0) !== 0;
   });
   if (!withAcct.length) return sendMessage(chatId, `❌ No investors have a value set for *${acct}*.`);
   const total = withAcct.reduce((a, inv) => a + Number(inv.acct_profits[acct] || 0), 0);
   const avg = total / withAcct.length;
-  const lines = withAcct.map(inv => `• ${inv.fname} ${inv.lname} — ${fmt(inv.acct_profits[acct])}`).join('\n');
-  sendMessage(chatId, `📊 *Account ${acct} — Average*\n\n${lines}\n\n*Total: ${fmt(total)}*\n*Accounts: ${withAcct.length}*\n*Average: ${fmt(avg)}*`);
+  sendMessage(chatId, `📊 *Account ${acct} — Average*\n\n*Total: ${fmt(total)}*\n*Accounts: ${withAcct.length}*\n*Average: ${fmt(avg)}*`);
 }
 
 async function cmdHelp(chatId) {
