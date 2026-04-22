@@ -184,9 +184,18 @@ async function cmdStats(chatId) {
   const totalAP = investors.reduce((a, i) => a + calcAP(i), 0);
   const owingCount = investors.filter(i => calcOwed(i) > 0).length;
 
+  // Per account type: total made across ALL investors, plus avg stats
   const allAccts = ACCTS.concat(['B']);
+  let grandTotal = 0;
   const acctLines = allAccts.map(acct => {
-    const withAcct = investors.filter(inv => {
+    // Total made on this account type (every investor who has a value set)
+    const allWithValue = investors.filter(inv => {
+      const ap = inv.acct_profits || {};
+      return acct in ap && ap[acct] !== null && ap[acct] !== undefined;
+    });
+    const totalMade = allWithValue.reduce((a, inv) => a + Number(inv.acct_profits[acct] || 0), 0);
+    // Avg filtering (exclude 0, and <1000 for account 3)
+    const forAvg = investors.filter(inv => {
       const accts = getAccts(inv);
       const ap = inv.acct_profits || {};
       const val = Number(ap[acct] || 0);
@@ -195,11 +204,23 @@ async function cmdStats(chatId) {
       if (acct === '3' && val < 1000) return false;
       return true;
     });
-    if (!withAcct.length) return null;
-    const total = withAcct.reduce((a, inv) => a + Number(inv.acct_profits[acct] || 0), 0);
-    const avg = total / withAcct.length;
-    return `*${acct}:* ${fmt(total)} | ${withAcct.length} accts | avg ${fmt(avg)}`;
+    if (!allWithValue.length) return null;
+    grandTotal += totalMade;
+    const avg = forAvg.length ? totalMade / forAvg.length : 0;
+    return `*${acct}:* ${fmt(totalMade)} | ${forAvg.length} accts | avg ${fmt(avg)}`;
   }).filter(Boolean).join('\n');
+
+  // Per state breakdown
+  const stateMap = {};
+  investors.forEach(inv => {
+    const st = (inv.state || 'Unknown').toUpperCase();
+    if (!stateMap[st]) stateMap[st] = { total: 0, count: 0 };
+    stateMap[st].total += calcAP(inv);
+    stateMap[st].count++;
+  });
+  const stateLines = Object.keys(stateMap).sort().map(st => {
+    return `*${st}:* ${fmt(stateMap[st].total)} (${stateMap[st].count} investors)`;
+  }).join('\n');
 
   sendMessage(chatId,
     `📊 *Fund Stats*\n` +
@@ -207,7 +228,9 @@ async function cmdStats(chatId) {
     `📈 Total Acct Profits: ${fmt(totalAP)}\n` +
     `🔴 Total Owed: ${fmt(totalOwed)} (${owingCount} investors)\n\n` +
     `📋 *By Account*\n` +
-    acctLines
+    acctLines + `\n*Total: ${fmt(grandTotal)}*\n\n` +
+    `📍 *By State*\n` +
+    stateLines
   );
 }
 
